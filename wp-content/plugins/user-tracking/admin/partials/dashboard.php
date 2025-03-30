@@ -77,8 +77,8 @@ jQuery(document).ready(function($) {
         error: function(xhr, status, error) {
             $('.loading-overlay').hide();
             $('.dashboard-content').html(
-                '<div class="notice notice-error">' +
-                '<p>Không thể tải dữ liệu. Vui lòng thử lại sau.</p>' +
+                '<div class="notice notice-info">' +
+                '<p>Chưa có dữ liệu tracking nào. Plugin sẽ tự động thu thập dữ liệu khi có người dùng truy cập website.</p>' +
                 '</div>'
             ).show();
         }
