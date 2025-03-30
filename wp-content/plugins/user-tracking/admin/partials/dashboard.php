@@ -47,22 +47,40 @@ jQuery(document).ready(function($) {
     $('.loading-overlay').show();
     $('.dashboard-content').hide();
     
-    // Load data asynchronously
-    $.ajax({
+    // Load data asynchronously with timeout
+    var loadData = $.ajax({
         url: ajaxurl,
         type: 'POST',
         data: {
             action: 'user_tracking_load_dashboard'
         },
+        timeout: 10000, // 10 seconds timeout
         success: function(response) {
-            // Update dashboard content
-            $('.loading-overlay').hide();
-            $('.dashboard-content').show();
-            
-            // Update chart data if needed
-            if(response.chart_data) {
-                updateChart(response.chart_data);
+            if (response.success && response.data) {
+                // Update dashboard content
+                $('.loading-overlay').hide();
+                
+                if (response.data.stats.total_sessions > 0) {
+                    $('.dashboard-content').show();
+                    if(response.data.chart_data) {
+                        updateChart(response.data.chart_data);
+                    }
+                } else {
+                    $('.dashboard-content').html(
+                        '<div class="notice notice-info">' +
+                        '<p>Chưa có dữ liệu tracking nào. Plugin sẽ tự động thu thập dữ liệu khi có người dùng truy cập website.</p>' +
+                        '</div>'
+                    ).show();
+                }
             }
+        },
+        error: function(xhr, status, error) {
+            $('.loading-overlay').hide();
+            $('.dashboard-content').html(
+                '<div class="notice notice-error">' +
+                '<p>Không thể tải dữ liệu. Vui lòng thử lại sau.</p>' +
+                '</div>'
+            ).show();
         }
     });
 
