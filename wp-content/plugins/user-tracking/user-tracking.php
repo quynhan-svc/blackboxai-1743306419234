@@ -2,14 +2,14 @@
 /**
  * Plugin Name: User Tracking for Google Ads
  * Description: Tracks user behavior from Google Ads and detects fraudulent clicks.
- * Version: 1.0
- * Author: Your Name
+ * Version: 1.0.1
+ * Author: Quỳnh An Solar Nha Trang
  */
 
 defined('ABSPATH') or die('Direct access not allowed!');
 
 // Define plugin constants
-define('USER_TRACKING_VERSION', '1.0');
+define('USER_TRACKING_VERSION', '1.0.1');
 define('USER_TRACKING_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('USER_TRACKING_PLUGIN_URL', plugin_dir_url(__FILE__));
 
