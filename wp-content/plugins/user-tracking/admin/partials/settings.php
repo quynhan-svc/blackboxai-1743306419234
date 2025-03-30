@@ -42,10 +42,6 @@
             <h3>System Information</h3>
             <table class="widefat">
                 <tr>
-                    <th>Database Size</th>
-                    <td><?php echo size_format(self::get_database_size()); ?></td>
-                </tr>
-                <tr>
                     <th>Last Data Purge</th>
                     <td><?php echo get_option('user_tracking_last_purge', 'Never'); ?></td>
                 </tr>
