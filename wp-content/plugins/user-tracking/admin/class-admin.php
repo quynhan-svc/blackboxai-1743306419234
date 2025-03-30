@@ -48,7 +48,9 @@ class Admin {
     }
 
     public static function register_settings() {
-        register_setting('user_tracking_settings', 'user_tracking_settings');
+        register_setting('user_tracking_settings', 'user_tracking_settings', [
+            'sanitize_callback' => [__CLASS__, 'sanitize_settings']
+        ]);
 
         add_settings_section(
             'user_tracking_alert_settings',
@@ -280,6 +282,32 @@ class Admin {
         } else {
             wp_send_json_error($body['description'] ?? 'Unknown Telegram API error');
         }
+    }
+
+    public static function sanitize_settings($input) {
+        $output = get_option('user_tracking_settings', []);
+        
+        // Sanitize Telegram settings
+        if (isset($input['telegram_bot_token'])) {
+            $output['telegram_bot_token'] = sanitize_text_field($input['telegram_bot_token']);
+        }
+        if (isset($input['telegram_chat_id'])) {
+            $output['telegram_chat_id'] = sanitize_text_field($input['telegram_chat_id']);
+        }
+        
+        // Sanitize email settings
+        if (isset($input['alert_email'])) {
+            $output['alert_email'] = sanitize_email($input['alert_email']);
+        }
+        
+        // Sanitize checkbox fields
+        if (isset($input['email_alerts'])) {
+            $output['email_alerts'] = 1;
+        } else {
+            $output['email_alerts'] = 0;
+        }
+        
+        return $output;
     }
 
     public static function render_checkbox_field($args) {
