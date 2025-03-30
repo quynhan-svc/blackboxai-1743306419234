@@ -1,3 +1,8 @@
+<?php
+/**
+ * Settings page template
+ */
+?>
 <div class="wrap">
     <h1>User Tracking Settings</h1>
 
@@ -39,6 +44,22 @@
         </div>
 
         <div class="card">
+            <h3>Test Connections</h3>
+            <div class="connection-tests">
+                <button id="test-email" class="button button-secondary">
+                    <span class="dashicons dashicons-email-alt"></span> Test Email
+                </button>
+                <button id="test-telegram" class="button button-secondary" style="margin-left:10px;">
+                    <span class="dashicons dashicons-share"></span> Test Telegram
+                </button>
+                <button id="preview-alerts" class="button button-secondary" style="margin-left:10px;">
+                    <span class="dashicons dashicons-visibility"></span> Preview Alerts
+                </button>
+                <div id="test-results" style="margin-top:10px;"></div>
+            </div>
+        </div>
+
+        <div class="card">
             <h3>System Information</h3>
             <table class="widefat">
                 <tr>
@@ -50,19 +71,6 @@
                     <td><?php echo get_option('user_tracking_install_date', 'Unknown'); ?></td>
                 </tr>
             </table>
-        </div>
-
-        <div class="card">
-            <h3>Test Connections</h3>
-            <div class="connection-tests">
-                <button id="test-email" class="button button-secondary">
-                    <span class="dashicons dashicons-email-alt"></span> Test Email
-                </button>
-                <button id="test-telegram" class="button button-secondary" style="margin-left:10px;">
-                    <span class="dashicons dashicons-share"></span> Test Telegram
-                </button>
-                <div id="test-results" style="margin-top:10px;"></div>
-            </div>
         </div>
     </div>
 </div>
@@ -104,6 +112,33 @@ jQuery(document).ready(function($) {
         }).fail(function() {
             $('#test-results').html('<div class="notice notice-error"><p>Failed to send test request</p></div>');
         });
+    });
+
+    $('#preview-alerts').click(function(e) {
+        e.preventDefault();
+        $('#test-results').html(`
+            <div class="notice notice-info">
+                <h4>Email Alert Preview:</h4>
+                <p><strong>Subject:</strong> [User Tracking] Fraud Detected</p>
+                <p><strong>Content:</strong><br>
+                Fraudulent activity detected:<br>
+                - IP: 192.168.1.1<br>
+                - User Agent: Suspicious Bot<br>  
+                - Country: Unknown<br>
+                - Reason: Multiple failed attempts<br>
+                - Time: ${new Date().toLocaleString()}</p>
+            </div>
+            <div class="notice notice-info" style="margin-top:10px;">
+                <h4>Telegram Alert Preview:</h4>
+                <p><strong>Content:</strong><br>
+                🚨 Fraud Detected 🚨<br>
+                IP: 192.168.1.1<br>
+                User Agent: Suspicious Bot<br>
+                Country: Unknown<br>
+                Reason: Multiple failed attempts<br>
+                Time: ${new Date().toLocaleString()}</p>
+            </div>
+        `);
     });
 });
 </script>
