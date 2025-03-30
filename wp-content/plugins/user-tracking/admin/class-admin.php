@@ -164,28 +164,52 @@ class Admin {
                 ) ?: []
             ];
 
-            // Get chart data only if there are sessions
+            // Get chart data for last 30 days with complete date range
             $chart_data = [];
-            if ($stats['total_sessions'] > 0) {
-                $chart_data = $wpdb->get_results(
-                    "SELECT DATE(created_at) as date, COUNT(*) as count 
-                     FROM {$wpdb->prefix}user_tracking_sessions 
-                     WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
-                     GROUP BY DATE(created_at)
-                     ORDER BY date ASC
-                     LIMIT 30"
-                ) ?: [];
+            $dates = [];
+            
+            // Generate all dates for the last 30 days
+            for ($i = 29; $i >= 0; $i--) {
+                $dates[] = date('Y-m-d', strtotime("-$i days"));
             }
+            
+            // Get session counts for these dates
+            $results = $wpdb->get_results(
+                "SELECT DATE(created_at) as date, COUNT(*) as count 
+                 FROM {$wpdb->prefix}user_tracking_sessions 
+                 WHERE created_at BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()
+                 GROUP BY DATE(created_at)"
+            ) ?: [];
+            
+            // Create a map of date => count
+            $counts = [];
+            foreach ($results as $row) {
+                $counts[$row->date] = $row->count;
+            }
+            
+            // Build complete chart data with 0 for dates without sessions
+            foreach ($dates as $date) {
+                $chart_data[] = [
+                    'date' => $date,
+                    'count' => $counts[$date] ?? 0
+                ];
+            }
+            
+            // Clean up old sessions to prevent data bloat
+            $wpdb->query(
+                "DELETE FROM {$wpdb->prefix}user_tracking_sessions 
+                 WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)"
+            );
 
             // Prepare response
             wp_send_json_success([
                 'stats' => $stats,
                 'chart_data' => [
                     'labels' => array_map(function($item) { 
-                        return date('M j', strtotime($item->date)); 
+                        return date('M j', strtotime($item['date'])); 
                     }, $chart_data),
                     'values' => array_map(function($item) { 
-                        return $item->count; 
+                        return $item['count']; 
                     }, $chart_data)
                 ]
             ]);
