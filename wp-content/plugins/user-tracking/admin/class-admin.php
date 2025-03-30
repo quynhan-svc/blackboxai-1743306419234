@@ -232,6 +232,56 @@ class Admin {
         <?php
     }
 
+    public static function test_email_connection() {
+        $options = get_option('user_tracking_settings');
+        $email = $options['alert_email'] ?? '';
+        
+        if (empty($email)) {
+            wp_send_json_error('No email address configured');
+            return;
+        }
+
+        $subject = 'User Tracking Test Email';
+        $message = 'This is a test email from User Tracking plugin.';
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+
+        $result = wp_mail($email, $subject, $message, $headers);
+        
+        if ($result) {
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to send test email');
+        }
+    }
+
+    public static function test_telegram_connection() {
+        $options = get_option('user_tracking_settings');
+        $bot_token = $options['telegram_bot_token'] ?? '';
+        $chat_id = $options['telegram_chat_id'] ?? '';
+        
+        if (empty($bot_token) || empty($chat_id)) {
+            wp_send_json_error('Telegram settings not configured');
+            return;
+        }
+
+        $message = urlencode('User Tracking Test Message');
+        $url = "https://api.telegram.org/bot{$bot_token}/sendMessage?chat_id={$chat_id}&text={$message}";
+        
+        $response = wp_remote_get($url);
+        
+        if (is_wp_error($response)) {
+            wp_send_json_error($response->get_error_message());
+            return;
+        }
+
+        $body = json_decode($response['body'], true);
+        if ($body && $body['ok']) {
+            wp_send_json_success();
+        } else {
+            wp_send_json_error($body['description'] ?? 'Unknown Telegram API error');
+        }
+    }
+
     public static function render_checkbox_field($args) {
         $options = get_option('user_tracking_settings');
         $checked = isset($options[$args['name']]) ? checked(1, $options[$args['name']], false) : '';
