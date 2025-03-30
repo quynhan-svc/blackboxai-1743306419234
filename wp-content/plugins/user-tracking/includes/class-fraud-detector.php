@@ -68,15 +68,49 @@ class FraudDetector {
         );
     }
 
-    private static function send_alert($message) {
+    public static function get_alert_message($fraud_data) {
+        $time = current_time('mysql');
+        $ip = $fraud_data['ip'] ?? 'Unknown';
+        $ua = $fraud_data['user_agent'] ?? 'Unknown';
+        $country = $fraud_data['country'] ?? 'Unknown';
+        $reason = $fraud_data['reason'] ?? 'Suspicious activity';
+
+        // Email content
+        $email = [
+            'subject' => '[User Tracking] Fraud Detected',
+            'message' => "Fraudulent activity detected:\n\n" .
+                         "IP: $ip\n" .
+                         "User Agent: $ua\n" .
+                         "Country: $country\n" .
+                         "Reason: $reason\n" .
+                         "Time: $time"
+        ];
+
+        // Telegram content
+        $telegram = "🚨 Fraud Detected 🚨\n" .
+                   "IP: $ip\n" .
+                   "User Agent: $ua\n" .
+                   "Country: $country\n" .
+                   "Reason: $reason\n" .
+                   "Time: $time";
+
+        return [
+            'email' => $email,
+            'telegram' => $telegram
+        ];
+    }
+
+    private static function send_alert($fraud_data) {
         $options = get_option('user_tracking_settings');
+        $message = self::get_alert_message($fraud_data);
 
         // Send email alert if enabled
-        if (!empty($options['email_alerts'])) {
+        if (!empty($options['email_alerts']) && !empty($options['alert_email'])) {
             wp_mail(
                 $options['alert_email'],
-                'Fraud Detection Alert',
-                $message
+                $message['email']['subject'],
+                $message['email']['message'],
+                ['Content-Type: text/plain; charset=UTF-8']
             );
         }
 
@@ -87,7 +121,7 @@ class FraudDetector {
                 [
                     'body' => [
                         'chat_id' => $options['telegram_chat_id'],
-                        'text' => $message
+                        'text' => $message['telegram']
                     ]
                 ]
             );
