@@ -34,4 +34,6 @@ add_action('plugins_loaded', function() {
 
     // Register AJAX handlers
     add_action('wp_ajax_user_tracking_load_dashboard', ['UserTracking\Admin', 'ajax_load_dashboard']);
+    add_action('wp_ajax_user_tracking_test_email', ['UserTracking\Admin', 'test_email_connection']);
+    add_action('wp_ajax_user_tracking_test_telegram', ['UserTracking\Admin', 'test_telegram_connection']);
 });
