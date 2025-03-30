@@ -51,5 +51,59 @@
                 </tr>
             </table>
         </div>
+
+        <div class="card">
+            <h3>Test Connections</h3>
+            <div class="connection-tests">
+                <button id="test-email" class="button button-secondary">
+                    <span class="dashicons dashicons-email-alt"></span> Test Email
+                </button>
+                <button id="test-telegram" class="button button-secondary" style="margin-left:10px;">
+                    <span class="dashicons dashicons-share"></span> Test Telegram
+                </button>
+                <div id="test-results" style="margin-top:10px;"></div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+    $('#test-email').click(function(e) {
+        e.preventDefault();
+        $('#test-results').html('<p><span class="spinner is-active"></span> Testing email connection...</p>');
+        
+        $.post(ajaxurl, {
+            action: 'user_tracking_test_email',
+            email: $('input[name="user_tracking_settings[alert_email]"]').val()
+        }, function(response) {
+            if (response.success) {
+                $('#test-results').html('<div class="notice notice-success"><p>Email test successful! Check your inbox.</p></div>');
+            } else {
+                $('#test-results').html('<div class="notice notice-error"><p>Email test failed: ' + (response.data || 'Unknown error') + '</p></div>');
+            }
+        }).fail(function() {
+            $('#test-results').html('<div class="notice notice-error"><p>Failed to send test request</p></div>');
+        });
+    });
+
+    $('#test-telegram').click(function(e) {
+        e.preventDefault();
+        $('#test-results').html('<p><span class="spinner is-active"></span> Testing Telegram connection...</p>');
+        
+        $.post(ajaxurl, {
+            action: 'user_tracking_test_telegram',
+            bot_token: $('input[name="user_tracking_settings[telegram_bot_token]"]').val(),
+            chat_id: $('input[name="user_tracking_settings[telegram_chat_id]"]').val()
+        }, function(response) {
+            if (response.success) {
+                $('#test-results').html('<div class="notice notice-success"><p>Telegram test successful! Check your Telegram.</p></div>');
+            } else {
+                $('#test-results').html('<div class="notice notice-error"><p>Telegram test failed: ' + (response.data || 'Unknown error') + '</p></div>');
+            }
+        }).fail(function() {
+            $('#test-results').html('<div class="notice notice-error"><p>Failed to send test request</p></div>');
+        });
+    });
+});
+</script>
