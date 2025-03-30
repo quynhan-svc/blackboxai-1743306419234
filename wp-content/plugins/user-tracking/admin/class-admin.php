@@ -139,22 +139,48 @@ class Admin {
     public static function render_dashboard() {
         global $wpdb;
 
-        // Get stats for dashboard
+        // Get stats with optimized queries
         $stats = [
-            'total_sessions' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions"),
-            'today_sessions' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions WHERE DATE(created_at) = CURDATE()"),
-            'fraud_attempts' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_fraud_logs"),
-            'top_countries' => $wpdb->get_results("SELECT country, COUNT(*) as count FROM {$wpdb->prefix}user_tracking_sessions GROUP BY country ORDER BY count DESC LIMIT 5")
+            'total_sessions' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions LIMIT 1"),
+            'today_sessions' => $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions WHERE DATE(created_at) = %s LIMIT 1", 
+                current_time('mysql', 1)
+            )),
+            'fraud_attempts' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_fraud_logs LIMIT 1"),
+            'top_countries' => $wpdb->get_results(
+                "SELECT country, COUNT(*) as count 
+                 FROM {$wpdb->prefix}user_tracking_sessions 
+                 WHERE country != '' 
+                 GROUP BY country 
+                 ORDER BY count DESC 
+                 LIMIT 5"
+            )
         ];
 
-        // Get chart data
-        $chart_data = $wpdb->get_results("
-            SELECT DATE(created_at) as date, COUNT(*) as count 
-            FROM {$wpdb->prefix}user_tracking_sessions 
-            WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
-            GROUP BY DATE(created_at)
-            ORDER BY date ASC
-        ");
+        // Get chart data with date range limit
+        $chart_data = $wpdb->get_results(
+            "SELECT DATE(created_at) as date, COUNT(*) as count 
+             FROM {$wpdb->prefix}user_tracking_sessions 
+             WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+             GROUP BY DATE(created_at)
+             ORDER BY date ASC
+             LIMIT 30"
+        );
+
+        // Add caching layer
+        $cache_key = 'user_tracking_dashboard_data';
+        $cached_data = get_transient($cache_key);
+        
+        if (false === $cached_data) {
+            $cached_data = [
+                'stats' => $stats,
+                'chart_data' => $chart_data
+            ];
+            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS);
+        } else {
+            $stats = $cached_data['stats'];
+            $chart_data = $cached_data['chart_data'];
+        }
 
         include USER_TRACKING_PLUGIN_DIR . 'admin/partials/dashboard.php';
     }
