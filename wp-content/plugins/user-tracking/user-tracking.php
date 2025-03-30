@@ -31,4 +31,7 @@ add_action('plugins_loaded', function() {
     if (is_admin()) {
         UserTracking\Admin::init();
     }
+
+    // Register AJAX handlers
+    add_action('wp_ajax_user_tracking_load_dashboard', ['UserTracking\Admin', 'ajax_load_dashboard']);
 });
