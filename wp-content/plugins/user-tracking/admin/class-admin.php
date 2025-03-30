@@ -243,11 +243,18 @@ class Admin {
             return;
         }
 
-        $subject = 'User Tracking Test Email';
-        $message = 'This is a test email from User Tracking plugin.';
-        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        $time = current_time('mysql');
+        $message = [
+            'subject' => '[User Tracking] Fraud Detected',
+            'message' => "Fraudulent activity detected:\n\n" .
+                         "IP: 192.168.1.1\n" .
+                         "User Agent: Test Bot\n" .
+                         "Country: Test Country\n" .
+                         "Reason: Test Connection\n" .
+                         "Time: $time"
+        ];
 
-        $result = wp_mail($email, $subject, $message, $headers);
+        $result = wp_mail($email, $message['subject'], $message['message'], ['Content-Type: text/plain; charset=UTF-8']);
         
         if ($result) {
             wp_send_json_success();
@@ -266,10 +273,21 @@ class Admin {
             return;
         }
 
-        $message = urlencode('User Tracking Test Message');
-        $url = "https://api.telegram.org/bot{$bot_token}/sendMessage?chat_id={$chat_id}&text={$message}";
-        
-        $response = wp_remote_get($url);
+        $time = current_time('mysql');
+        $message = "🚨 Fraud Detected 🚨\n" .
+                  "IP: 192.168.1.1\n" .
+                  "User Agent: Test Bot\n" .
+                  "Country: Test Country\n" .
+                  "Reason: Test Connection\n" .
+                  "Time: $time";
+
+        $url = "https://api.telegram.org/bot{$bot_token}/sendMessage";
+        $response = wp_remote_post($url, [
+            'body' => [
+                'chat_id' => $chat_id,
+                'text' => $message
+            ]
+        ]);
         
         if (is_wp_error($response)) {
             wp_send_json_error($response->get_error_message());
