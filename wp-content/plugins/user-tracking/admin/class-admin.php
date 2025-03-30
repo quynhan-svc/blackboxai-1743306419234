@@ -137,52 +137,71 @@ class Admin {
     }
 
     public static function render_dashboard() {
+        include USER_TRACKING_PLUGIN_DIR . 'admin/partials/dashboard.php';
+    }
+
+    public static function ajax_load_dashboard() {
         global $wpdb;
 
-        // Get stats with optimized queries
-        $stats = [
-            'total_sessions' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions LIMIT 1"),
-            'today_sessions' => $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions WHERE DATE(created_at) = %s LIMIT 1", 
-                current_time('mysql', 1)
-            )),
-            'fraud_attempts' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_fraud_logs LIMIT 1"),
-            'top_countries' => $wpdb->get_results(
-                "SELECT country, COUNT(*) as count 
-                 FROM {$wpdb->prefix}user_tracking_sessions 
-                 WHERE country != '' 
-                 GROUP BY country 
-                 ORDER BY count DESC 
-                 LIMIT 5"
-            )
-        ];
-
-        // Get chart data with date range limit
-        $chart_data = $wpdb->get_results(
-            "SELECT DATE(created_at) as date, COUNT(*) as count 
-             FROM {$wpdb->prefix}user_tracking_sessions 
-             WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
-             GROUP BY DATE(created_at)
-             ORDER BY date ASC
-             LIMIT 30"
-        );
-
-        // Add caching layer
-        $cache_key = 'user_tracking_dashboard_data';
-        $cached_data = get_transient($cache_key);
-        
-        if (false === $cached_data) {
-            $cached_data = [
-                'stats' => $stats,
-                'chart_data' => $chart_data
+        try {
+            // Get stats with optimized queries
+            $stats = [
+                'total_sessions' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions LIMIT 1") ?: 0,
+                'today_sessions' => $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_sessions WHERE DATE(created_at) = %s LIMIT 1", 
+                    current_time('mysql', 1)
+                )) ?: 0,
+                'fraud_attempts' => $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}user_tracking_fraud_logs LIMIT 1") ?: 0,
+                'top_countries' => $wpdb->get_results(
+                    "SELECT country, COUNT(*) as count 
+                     FROM {$wpdb->prefix}user_tracking_sessions 
+                     WHERE country != '' 
+                     GROUP BY country 
+                     ORDER BY count DESC 
+                     LIMIT 5"
+                ) ?: []
             ];
-            set_transient($cache_key, $cached_data, HOUR_IN_SECONDS);
-        } else {
-            $stats = $cached_data['stats'];
-            $chart_data = $cached_data['chart_data'];
-        }
 
-        include USER_TRACKING_PLUGIN_DIR . 'admin/partials/dashboard.php';
+            // Get chart data only if there are sessions
+            $chart_data = [];
+            if ($stats['total_sessions'] > 0) {
+                $chart_data = $wpdb->get_results(
+                    "SELECT DATE(created_at) as date, COUNT(*) as count 
+                     FROM {$wpdb->prefix}user_tracking_sessions 
+                     WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+                     GROUP BY DATE(created_at)
+                     ORDER BY date ASC
+                     LIMIT 30"
+                ) ?: [];
+            }
+
+            // Prepare response
+            wp_send_json_success([
+                'stats' => $stats,
+                'chart_data' => [
+                    'labels' => array_map(function($item) { 
+                        return date('M j', strtotime($item->date)); 
+                    }, $chart_data),
+                    'values' => array_map(function($item) { 
+                        return $item->count; 
+                    }, $chart_data)
+                ]
+            ]);
+        } catch (Exception $e) {
+            // Return empty data set when error occurs
+            wp_send_json_success([
+                'stats' => [
+                    'total_sessions' => 0,
+                    'today_sessions' => 0,
+                    'fraud_attempts' => 0,
+                    'top_countries' => []
+                ],
+                'chart_data' => [
+                    'labels' => [],
+                    'values' => []
+                ]
+            ]);
+        }
     }
 
     public static function render_fraud_logs() {
